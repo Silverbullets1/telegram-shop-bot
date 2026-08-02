@@ -1,11 +1,10 @@
 """
-shop_bot.py — Telegram Shop/Order Bot (WEBHOOK MODE)
-Webhook avoids getUpdates conflict — Telegram pushes updates to us.
-Deploy on Railway: set SHOP_BOT_TOKEN + SHOP_ADMIN_ID env vars.
-Railway gives a public URL; we register webhook on startup.
+shop_bot.py — Telegram Shop/Order Bot
+Run on Railway: set SHOP_BOT_TOKEN + SHOP_ADMIN_ID env vars.
+NOTE: python-telegram-bot v20 manages its own event loop, so we call
+app.run_polling() directly (do NOT wrap in asyncio.run).
 """
 import os
-import asyncio
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
@@ -71,31 +70,13 @@ async def text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print("notify failed:", e)
 
-async def main():
+def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text))
-
-    # Webhook via Railway's public URL (set by Railway as RAILWAY_PUBLIC_DOMAIN)
-    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    if domain:
-        webhook_url = f"https://{domain}/{BOT_TOKEN}"
-        await app.bot.set_webhook(url=webhook_url)
-        print(f"Webhook set: {webhook_url}")
-        # Run webhook server on Railway's PORT
-        port = int(os.getenv("PORT", "8080"))
-        await app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=BOT_TOKEN,
-            webhook_url=webhook_url,
-            drop_pending_updates=True,
-        )
-    else:
-        # Fallback: polling (single instance, no conflict expected)
-        print("No RAILWAY_PUBLIC_DOMAIN, falling back to polling")
-        await app.run_polling(drop_pending_updates=True)
+    print("Bot starting (polling)...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
