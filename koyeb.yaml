@@ -1,0 +1,20 @@
+# Koyeb deployment config
+# App: telegram-shop-bot
+# Connect your GitHub repo, Koyeb auto-builds & runs this.
+
+name: telegram-shop-bot
+services:
+  - name: bot
+    type: worker
+    # Build
+    docker:
+      image: python:3.11-slim
+    # Run
+    command: python shop_bot.py
+    env:
+      - name: SHOP_BOT_TOKEN
+        # set this in Koyeb dashboard -> Secrets, then link here
+        value: ${SHOP_BOT_TOKEN}
+      - name: SHOP_ADMIN_ID
+        value: "7411298800"
+    ports: []   # no web port, it's a worker (polling bot)
